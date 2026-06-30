@@ -34,7 +34,7 @@ export default class TaskKanbanPlugin extends Plugin {
     this.registerView(VIEW_TYPE_TASK_KANBAN, (leaf) => new TaskKanbanView(leaf, this));
     this.registerEditorSuggest(new ReminderSuggest(this.app));
 
-    this.addRibbonIcon("layout-kanban", "Open task kanban", () => this.openBoardForActiveFile());
+    this.addRibbonIcon("dice", "Open task kanban", () => this.openBoardForActiveFile());
 
     this.addCommand({
       id: "open-task-kanban",
@@ -302,7 +302,7 @@ class ReminderModal extends Modal {
 
     const form = contentEl.createEl("form", { cls: "task-kanban-reminder" });
     const dateLabel = form.createEl("label", { text: "Date" });
-    const dateInput = dateLabel.createEl("input", { type: "date" });
+    const dateInput = dateLabel.createEl("input", { attr: { type: "date" } });
     dateInput.value = todayIsoDate();
 
     const frequencyLabel = form.createEl("label", { text: "Frequency" });
@@ -315,8 +315,8 @@ class ReminderModal extends Modal {
     }
 
     const actions = form.createDiv({ cls: "task-kanban-reminder__actions" });
-    const cancel = actions.createEl("button", { text: "Cancel", type: "button" });
-    const submit = actions.createEl("button", { text: "Insert", type: "submit" });
+    const cancel = actions.createEl("button", { text: "Cancel", attr: { type: "button" } });
+    const submit = actions.createEl("button", { text: "Insert", attr: { type: "submit" } });
     submit.addClass("mod-cta");
 
     cancel.addEventListener("click", () => this.close());
