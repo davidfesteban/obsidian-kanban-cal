@@ -9,7 +9,7 @@ First implementation of an Obsidian plugin that turns notes with `type: task-lis
 type: task-list
 ---
 
-- Pay invoice #now #high @reminder(2026-07-04, monthly)
+- Pay invoice #now #high @schedule(2026-07-04, monthly)
 - Try new idea #maybe
 - Later task #later
 ```
@@ -28,4 +28,6 @@ becomes:
 - [ ] Element
 ```
 
-Use `@date` or `@reminder` in the editor to open the date/frequency picker. The picker replaces the trigger with `@reminder(YYYY-MM-DD, frequency)`.
+Use `@date` or `@schedule` in the editor to open the date/frequency picker. The picker replaces the trigger with `@schedule(YYYY-MM-DD, frequency)`.
+
+The kanban board hides status/priority tags on cards, lets you complete tasks with a checkbox, and includes Default, 90s grey blue, modern pixel, and minimalist themes in plugin settings.

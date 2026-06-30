@@ -10,6 +10,7 @@ import {
   Notice,
   Plugin,
   PluginSettingTab,
+  Setting,
   TFile,
   ViewStateResult,
   WorkspaceLeaf
@@ -18,9 +19,19 @@ import {
 const VIEW_TYPE_TASK_KANBAN = "task-list-kanban";
 const STATUS_TAGS = ["now", "maybe", "later"] as const;
 const FREQUENCIES = ["once", "weekly", "2week", "monthly", "quarterly", "yearly"] as const;
+const BOARD_THEMES = ["default", "90s", "pixel", "minimal"] as const;
 
 type TaskStatus = (typeof STATUS_TAGS)[number];
 type Frequency = (typeof FREQUENCIES)[number];
+type BoardTheme = (typeof BOARD_THEMES)[number];
+
+interface TaskKanbanSettings {
+  theme: BoardTheme;
+}
+
+const DEFAULT_SETTINGS: TaskKanbanSettings = {
+  theme: "default"
+};
 
 interface TaskItem {
   line: number;
@@ -31,9 +42,17 @@ interface TaskItem {
 }
 
 export default class TaskKanbanPlugin extends Plugin {
+  settings: TaskKanbanSettings = DEFAULT_SETTINGS;
+
   async onload() {
+    await this.loadSettings();
     this.registerView(VIEW_TYPE_TASK_KANBAN, (leaf) => new TaskKanbanView(leaf, this));
-    this.registerEditorSuggest(new ReminderSuggest(this.app));
+    this.registerEditorSuggest(new ScheduleSuggest(this.app));
+    this.registerEvent(
+      this.app.workspace.on("editor-change", (editor, view) => {
+        if (view instanceof MarkdownView) this.normalizeCurrentEditorLine(editor, view);
+      })
+    );
     this.addSettingTab(new TaskKanbanSettingTab(this.app, this));
 
     this.addRibbonIcon("dice", "Open task kanban", () => this.openBoardForActiveFile());
@@ -58,6 +77,18 @@ export default class TaskKanbanPlugin extends Plugin {
         if (!checking) void this.normalizeTaskListFile(file, true);
         return true;
       }
+    });
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+    this.app.workspace.getLeavesOfType(VIEW_TYPE_TASK_KANBAN).forEach((leaf) => {
+      const view = leaf.view;
+      if (view instanceof TaskKanbanView) void view.render();
     });
   }
 
@@ -120,6 +151,22 @@ export default class TaskKanbanPlugin extends Plugin {
       new Notice("Nothing to normalize.");
     }
   }
+
+  private normalizeCurrentEditorLine(editor: Editor, view: MarkdownView) {
+    const file = view.file;
+    if (!file) return;
+
+    const cacheType = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
+    if (cacheType !== "task-list") return;
+
+    const cursor = editor.getCursor();
+    const line = editor.getLine(cursor.line);
+    const normalized = normalizeLiveTaskLine(line);
+    if (!normalized || normalized === line) return;
+
+    editor.replaceRange(normalized, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+    editor.setCursor({ line: cursor.line, ch: normalized.length });
+  }
 }
 
 class TaskKanbanSettingTab extends PluginSettingTab {
@@ -140,8 +187,24 @@ class TaskKanbanSettingTab extends PluginSettingTab {
       text: "Plain lines and bullets are normalized to - [ ] tasks, #high sorts first, and dragging cards updates status tags."
     });
     this.containerEl.createEl("p", {
-      text: "Type @date or @reminder to insert @reminder(YYYY-MM-DD, frequency)."
+      text: "Type @date or @schedule to insert @schedule(YYYY-MM-DD, frequency)."
     });
+
+    new Setting(this.containerEl)
+      .setName("Board theme")
+      .setDesc("Choose the visual style for the kanban board.")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("default", "Default")
+          .addOption("90s", "90s grey blue")
+          .addOption("pixel", "Modern pixel")
+          .addOption("minimal", "Minimal clean")
+          .setValue(this.plugin.settings.theme)
+          .onChange(async (value) => {
+            this.plugin.settings.theme = value as BoardTheme;
+            await this.plugin.saveSettings();
+          });
+      });
   }
 }
 
@@ -191,7 +254,12 @@ class TaskKanbanView extends ItemView {
   async render() {
     const container = this.containerEl.children[1];
     container.empty();
+    container.removeClass("task-kanban--default");
+    container.removeClass("task-kanban--90s");
+    container.removeClass("task-kanban--pixel");
+    container.removeClass("task-kanban--minimal");
     container.addClass("task-kanban");
+    container.addClass(`task-kanban--${this.plugin.settings.theme}`);
 
     const file = this.sourceFile ?? this.plugin.getActiveMarkdownFile();
     if (!file || !(await this.plugin.isTaskListFile(file))) {
@@ -221,7 +289,7 @@ class TaskKanbanView extends ItemView {
     column.dataset.status = status;
 
     const header = column.createDiv({ cls: "task-kanban__column-header" });
-    header.createSpan({ text: `#${status}` });
+    header.createSpan({ text: getStatusLabel(status) });
     header.createSpan({ text: String(tasks.length) });
 
     const cards = column.createDiv({ cls: "task-kanban__cards" });
@@ -234,7 +302,9 @@ class TaskKanbanView extends ItemView {
       }
     });
 
-    const sortedTasks = [...tasks].sort((a, b) => Number(b.highPriority) - Number(a.highPriority) || a.line - b.line);
+    const sortedTasks = [...tasks].sort(
+      (a, b) => Number(a.checked) - Number(b.checked) || Number(b.highPriority) - Number(a.highPriority) || a.line - b.line
+    );
     if (sortedTasks.length === 0) {
       cards.createDiv({ cls: "task-kanban__empty", text: "No tasks" });
       return;
@@ -242,21 +312,15 @@ class TaskKanbanView extends ItemView {
 
     for (const task of sortedTasks) {
       const card = cards.createDiv({
-        cls: `task-kanban__card${task.highPriority ? " task-kanban__card--high" : ""}`
+        cls: `task-kanban__card${task.highPriority ? " task-kanban__card--high" : ""}${task.checked ? " task-kanban__card--checked" : ""}`
       });
       card.draggable = true;
       card.dataset.line = String(task.line);
       card.ariaLabel = `${task.checked ? "Completed" : "Open"} task: ${task.text}`;
-      card.createDiv({ cls: "task-kanban__card-text", text: task.text });
-      const statusSelect = card.createEl("select", { cls: "task-kanban__status-select" });
-      for (const optionStatus of STATUS_TAGS) {
-        statusSelect.createEl("option", {
-          value: optionStatus,
-          text: `#${optionStatus}`
-        });
-      }
-      statusSelect.value = task.status;
-      statusSelect.addEventListener("change", () => void this.moveTaskToStatus(task.line, statusSelect.value as TaskStatus));
+      const checkbox = card.createEl("input", { cls: "task-kanban__checkbox", attr: { type: "checkbox" } });
+      checkbox.checked = task.checked;
+      checkbox.addEventListener("change", () => void this.toggleTaskChecked(task.line, checkbox.checked));
+      card.createDiv({ cls: "task-kanban__card-text", text: getCardDisplayText(task.text) });
       card.addEventListener("dragstart", (event) => {
         event.dataTransfer?.setData("text/plain", String(task.line));
       });
@@ -275,16 +339,29 @@ class TaskKanbanView extends ItemView {
     await this.app.vault.modify(this.sourceFile, lines.join("\n"));
     await this.render();
   }
+
+  private async toggleTaskChecked(line: number, checked: boolean) {
+    if (!this.sourceFile) return;
+
+    const content = await this.app.vault.read(this.sourceFile);
+    const lines = content.split("\n");
+    const current = lines[line];
+    if (!current) return;
+
+    lines[line] = setTaskChecked(current, checked);
+    await this.app.vault.modify(this.sourceFile, lines.join("\n"));
+    await this.render();
+  }
 }
 
-class ReminderSuggest extends EditorSuggest<string> {
+class ScheduleSuggest extends EditorSuggest<string> {
   constructor(app: App) {
     super(app);
   }
 
   onTrigger(cursor: EditorPosition, editor: Editor): EditorSuggestTriggerInfo | null {
     const line = editor.getLine(cursor.line).slice(0, cursor.ch);
-    const match = line.match(/@(date|reminder)$/);
+    const match = line.match(/@(date|schedule)$/);
     if (!match) return null;
 
     return {
@@ -295,7 +372,7 @@ class ReminderSuggest extends EditorSuggest<string> {
   }
 
   getSuggestions(): string[] {
-    return ["Insert reminder"];
+    return ["Insert schedule"];
   }
 
   renderSuggestion(value: string, el: HTMLElement) {
@@ -306,13 +383,13 @@ class ReminderSuggest extends EditorSuggest<string> {
     const context = this.context;
     if (!context) return;
 
-    new ReminderModal(this.app, (token) => {
+    new ScheduleModal(this.app, (token) => {
       context.editor.replaceRange(token, context.start, context.end);
     }).open();
   }
 }
 
-class ReminderModal extends Modal {
+class ScheduleModal extends Modal {
   private onSubmit: (token: string) => void;
 
   constructor(app: App, onSubmit: (token: string) => void) {
@@ -323,7 +400,7 @@ class ReminderModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Reminder" });
+    contentEl.createEl("h2", { text: "Schedule" });
 
     const form = contentEl.createEl("form", { cls: "task-kanban-reminder" });
     const dateLabel = form.createEl("label", { text: "Date" });
@@ -348,7 +425,7 @@ class ReminderModal extends Modal {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const frequency = frequencySelect.value as Frequency;
-      this.onSubmit(`@reminder(${dateInput.value}, ${frequency})`);
+      this.onSubmit(`@schedule(${dateInput.value}, ${frequency})`);
       this.close();
     });
   }
@@ -427,9 +504,40 @@ function getStatus(text: string): TaskStatus {
   return "maybe";
 }
 
+function getStatusLabel(status: TaskStatus): string {
+  if (status === "now") return "Now";
+  if (status === "later") return "Later";
+  return "Maybe";
+}
+
 function setTaskStatusTag(line: string, status: TaskStatus): string {
   const withoutStatus = line.replace(/\s#(?:now|maybe|later)\b/g, "").trimEnd();
   return `${withoutStatus} #${status}`;
+}
+
+function setTaskChecked(line: string, checked: boolean): string {
+  const marker = checked ? "x" : " ";
+  const taskMatch = line.match(/^(\s*-\s*)\[[ xX]?\](.*)$/);
+  if (taskMatch) return `${taskMatch[1]}[${marker}]${taskMatch[2]}`;
+
+  const bulletMatch = line.match(/^(\s*-\s+)(.*)$/);
+  if (bulletMatch) return `${bulletMatch[1]}[${marker}] ${bulletMatch[2]}`;
+
+  return `- [${marker}] ${line.trim()}`;
+}
+
+function getCardDisplayText(text: string): string {
+  return text.replace(/(^|\s)#(?:now|maybe|later|high)\b/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeLiveTaskLine(line: string): string | null {
+  const shorthand = line.match(/^(\s*)-\s*\[\]\s+(.+)$/);
+  if (shorthand) return `${shorthand[1]}- [ ] ${shorthand[2].trimStart()}`;
+
+  const bullet = line.match(/^(\s*)-\s+(?!\[[ xX]?\]\s)(.+)$/);
+  if (bullet) return `${bullet[1]}- [ ] ${bullet[2].trimStart()}`;
+
+  return null;
 }
 
 function getFrontmatterRange(lines: string[]): { start: number; end: number } | null {
