@@ -471,7 +471,11 @@ class TaskKanbanView extends ItemView {
 
     const header = container.createDiv({ cls: "task-kanban__header" });
     header.createDiv({ cls: "task-kanban__title", text: file.basename });
-    const refreshButton = header.createEl("button", { text: "Refresh" });
+    const actions = header.createDiv({ cls: "task-kanban__actions" });
+    const deleteDoneButton = actions.createEl("button", { text: "Delete done" });
+    deleteDoneButton.disabled = tasks.every((task) => !task.checked);
+    deleteDoneButton.addEventListener("click", () => void this.deleteCompletedTasks());
+    const refreshButton = actions.createEl("button", { text: "Refresh" });
     refreshButton.addEventListener("click", () => void this.render());
 
     const columns = container.createDiv({ cls: "task-kanban__columns" });
@@ -546,6 +550,21 @@ class TaskKanbanView extends ItemView {
 
     lines[line] = setTaskChecked(current, checked);
     await this.app.vault.modify(this.sourceFile, lines.join("\n"));
+    await this.render();
+  }
+
+  private async deleteCompletedTasks() {
+    if (!this.sourceFile) return;
+
+    const content = await this.app.vault.read(this.sourceFile);
+    const lines = content.split("\n");
+    const completedCount = lines.filter((line) => /^\s*-\s*\[[xX]\]/.test(line)).length;
+    if (completedCount === 0) return;
+
+    if (!window.confirm(`Delete ${completedCount} completed task${completedCount === 1 ? "" : "s"} from this note?`)) return;
+
+    const nextContent = lines.filter((line) => !/^\s*-\s*\[[xX]\]/.test(line)).join("\n");
+    await this.app.vault.modify(this.sourceFile, nextContent);
     await this.render();
   }
 }

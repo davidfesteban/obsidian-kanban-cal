@@ -36,6 +36,17 @@
   border-radius: var(--tk-radius);
 }
 
+.task-kanban__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.task-kanban__actions button:first-child:not(:disabled) {
+  color: var(--text-error);
+}
+
 .task-kanban__columns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
