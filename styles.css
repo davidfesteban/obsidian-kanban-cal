@@ -177,22 +177,71 @@
 }
 
 .task-kanban--pixel {
-  --tk-bg: #191a22;
-  --tk-column-bg: #242838;
-  --tk-card-bg: #30364a;
-  --tk-border: #7077ff;
-  --tk-text: #f5f7ff;
-  --tk-muted: #a9b0cf;
-  --tk-accent: #75f7c8;
+  --tk-bg: #050505;
+  --tk-column-bg: #080808;
+  --tk-card-bg: #111111;
+  --tk-border: #f4f4f4;
+  --tk-text: #f4f4f4;
+  --tk-muted: #cfcfcf;
+  --tk-accent: #ffffff;
   --tk-radius: 0;
-  --tk-shadow: 4px 4px 0 #0a0b10;
-  font-family: "Courier New", monospace;
+  --tk-shadow: 4px 4px 0 #2d5cff;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+}
+
+.task-kanban--pixel .task-kanban__title {
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 2px 0 0 #2d5cff;
+}
+
+.task-kanban--pixel .task-kanban__column-header {
+  color: #050505;
+  background: #ffffff;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.task-kanban--pixel .task-kanban__column-header span:last-child {
+  color: #ffffff;
+  background: #050505;
+}
+
+.task-kanban--pixel .task-kanban__header button {
+  color: #f4f4f4;
+  background: #050505;
+  border: 1px solid #f4f4f4;
+  box-shadow: 3px 3px 0 #2d5cff;
+}
+
+.task-kanban--pixel .task-kanban__header button:hover {
+  color: #050505;
+  background: #ffffff;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #2d5cff;
 }
 
 .task-kanban--pixel .task-kanban__card,
 .task-kanban--pixel .task-kanban__column,
 .task-kanban--pixel .task-kanban__header button {
   image-rendering: pixelated;
+}
+
+.task-kanban--pixel .task-kanban__card {
+  box-shadow: 2px 2px 0 #2d5cff;
+}
+
+.task-kanban--pixel .task-kanban__card:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.task-kanban--pixel .task-kanban__checkbox {
+  accent-color: #ffffff;
+}
+
+.task-kanban--pixel .task-kanban__card--checked {
+  opacity: 1;
+  background: #050505;
 }
 
 .task-kanban--minimal {
