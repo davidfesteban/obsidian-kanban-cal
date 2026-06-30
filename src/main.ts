@@ -9,6 +9,7 @@ import {
   Modal,
   Notice,
   Plugin,
+  PluginSettingTab,
   TFile,
   ViewStateResult,
   WorkspaceLeaf
@@ -33,6 +34,7 @@ export default class TaskKanbanPlugin extends Plugin {
   async onload() {
     this.registerView(VIEW_TYPE_TASK_KANBAN, (leaf) => new TaskKanbanView(leaf, this));
     this.registerEditorSuggest(new ReminderSuggest(this.app));
+    this.addSettingTab(new TaskKanbanSettingTab(this.app, this));
 
     this.addRibbonIcon("dice", "Open task kanban", () => this.openBoardForActiveFile());
 
@@ -117,6 +119,29 @@ export default class TaskKanbanPlugin extends Plugin {
     } else if (showNotice) {
       new Notice("Nothing to normalize.");
     }
+  }
+}
+
+class TaskKanbanSettingTab extends PluginSettingTab {
+  plugin: TaskKanbanPlugin;
+
+  constructor(app: App, plugin: TaskKanbanPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display() {
+    this.containerEl.empty();
+    this.containerEl.createEl("h2", { text: "Task List Kanban Calendar" });
+    this.containerEl.createEl("p", {
+      text: "Use frontmatter type: task-list to turn note tasks into #now, #maybe, and #later columns."
+    });
+    this.containerEl.createEl("p", {
+      text: "Plain lines and bullets are normalized to - [ ] tasks, #high sorts first, and dragging cards updates status tags."
+    });
+    this.containerEl.createEl("p", {
+      text: "Type @date or @reminder to insert @reminder(YYYY-MM-DD, frequency)."
+    });
   }
 }
 
