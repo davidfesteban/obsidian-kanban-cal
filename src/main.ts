@@ -155,6 +155,7 @@ export default class TaskKanbanPlugin extends Plugin {
     return this.settings.calendarUrls
       .split(/\r?\n/)
       .map((url) => url.trim())
+      .map(normalizeCalendarUrl)
       .filter(Boolean);
   }
 
@@ -807,6 +808,11 @@ function normalizeLiveTaskLine(line: string): string | null {
   if (bullet) return `${bullet[1]}- [ ] ${bullet[2].trimStart()}`;
 
   return null;
+}
+
+function normalizeCalendarUrl(url: string): string {
+  if (url.startsWith("webcal://")) return `https://${url.slice("webcal://".length)}`;
+  return url;
 }
 
 function parseScheduledTasks(file: TFile, content: string, defaultDurationMinutes: number): ScheduledTask[] {

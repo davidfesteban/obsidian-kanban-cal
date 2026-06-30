@@ -34,7 +34,7 @@ The kanban board hides status/priority tags on cards, lets you complete tasks wi
 
 ## Calendar
 
-Plugin settings accepts public `.ics` calendar URLs, one per line. The schedule picker uses them read-only to show busy slots for the selected date.
+Plugin settings accepts public `.ics` calendar URLs, one per line. Apple `webcal://` links are accepted and fetched as `https://`. The schedule picker uses them read-only to show busy slots for the selected date.
 
 On desktop, enable the local `.ics` feed and subscribe Apple Calendar to:
 
