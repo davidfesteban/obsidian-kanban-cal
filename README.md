@@ -12,6 +12,7 @@ Obsidian plugin for turning Markdown task-list notes into a kanban board with li
 - Type `@date` to open a date picker with optional time and recurrence.
 - Public `.ics` / Apple `webcal://` calendars can be added to show busy slots in the picker.
 - Desktop local `.ics` feed exports unchecked dated tasks for Apple Calendar subscription.
+- `type: reminder-list` notes support dated reminders without converting bullets into checkbox tasks.
 - Board themes: Default, 90s grey blue, Modern pixel, Minimal clean.
 
 ## Task Format
@@ -40,6 +41,21 @@ once, weekly, 2week, monthly, quarterly, yearly
 ```
 
 Existing `@schedule(...)` tokens are still read for compatibility, but new inserts use `@date(...)`.
+
+## Reminder Lists
+
+Use `type: reminder-list` when you want calendar reminders without task checkboxes:
+
+```md
+---
+type: reminder-list
+---
+
+- Dentist @date(2026-07-04 09:00, once)
+- Renew insurance @date(2026-08-01, yearly)
+```
+
+Unlike `task-list`, reminder-list notes do not normalize `- Dentist` into `- [ ] Dentist`. They are included in the local `.ics` feed when they contain `@date(...)`.
 
 ## Calendar Setup
 

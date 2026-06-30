@@ -26,6 +26,7 @@ const BOARD_THEMES = ["default", "90s", "pixel", "minimal"] as const;
 type TaskStatus = (typeof STATUS_TAGS)[number];
 type Frequency = (typeof FREQUENCIES)[number];
 type BoardTheme = (typeof BOARD_THEMES)[number];
+type SupportedNoteType = "task-list" | "reminder-list";
 
 interface TaskKanbanSettings {
   theme: BoardTheme;
@@ -171,7 +172,7 @@ export default class TaskKanbanPlugin extends Plugin {
       return;
     }
 
-    if (!(await this.isTaskListFile(file))) {
+    if ((await this.getSupportedNoteType(file)) !== "task-list") {
       new Notice("This note needs frontmatter: type: task-list");
       return;
     }
@@ -191,12 +192,17 @@ export default class TaskKanbanPlugin extends Plugin {
     }
   }
 
-  async isTaskListFile(file: TFile): Promise<boolean> {
+  async getSupportedNoteType(file: TFile): Promise<SupportedNoteType | null> {
     const cacheType = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
-    if (cacheType === "task-list") return true;
+    if (cacheType === "task-list" || cacheType === "reminder-list") return cacheType;
 
     const content = await this.app.vault.cachedRead(file);
-    return /^---\n[\s\S]*?\ntype:\s*task-list\s*(?:\n[\s\S]*?)?\n---/m.test(content);
+    const match = content.match(/^---\n[\s\S]*?\ntype:\s*(task-list|reminder-list)\s*(?:\n[\s\S]*?)?\n---/m);
+    return (match?.[1] as SupportedNoteType | undefined) ?? null;
+  }
+
+  async isTaskListFile(file: TFile): Promise<boolean> {
+    return (await this.getSupportedNoteType(file)) === "task-list";
   }
 
   async normalizeTaskListFile(file: TFile, showNotice: boolean) {
@@ -237,7 +243,7 @@ export default class TaskKanbanPlugin extends Plugin {
   async generateCalendarFeed(): Promise<string> {
     const events: ScheduledTask[] = [];
     for (const file of this.app.vault.getMarkdownFiles()) {
-      if (!(await this.isTaskListFile(file))) continue;
+      if (!(await this.getSupportedNoteType(file))) continue;
       const content = await this.app.vault.cachedRead(file);
       events.push(...parseScheduledTasks(file, content, this.settings.defaultDurationMinutes));
     }
@@ -325,6 +331,9 @@ class TaskKanbanSettingTab extends PluginSettingTab {
     const help = this.containerEl.createDiv({ cls: "task-kanban-settings__help" });
     help.createEl("p", {
       text: "Write tasks naturally in notes with frontmatter type: task-list. Plain lines and bullets become - [ ] tasks, and #now, #maybe, #later place cards into board columns."
+    });
+    help.createEl("p", {
+      text: "Use type: reminder-list for simple dated bullets without checkbox normalization; these reminders can still appear in the local calendar feed."
     });
     help.createEl("p", {
       text: "Use #high for priority sorting. The board hides metadata, lets you complete cards with a checkbox, drag between columns, and delete completed tasks."
