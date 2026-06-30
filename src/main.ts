@@ -322,15 +322,22 @@ class TaskKanbanSettingTab extends PluginSettingTab {
   display() {
     this.containerEl.empty();
     this.containerEl.createEl("h2", { text: "Task List Kanban Calendar" });
-    this.containerEl.createEl("p", {
-      text: "Use frontmatter type: task-list to turn note tasks into #now, #maybe, and #later columns."
+    const help = this.containerEl.createDiv({ cls: "task-kanban-settings__help" });
+    help.createEl("p", {
+      text: "Write tasks naturally in notes with frontmatter type: task-list. Plain lines and bullets become - [ ] tasks, and #now, #maybe, #later place cards into board columns."
     });
-    this.containerEl.createEl("p", {
-      text: "Plain lines and bullets are normalized to - [ ] tasks, #high sorts first, and dragging cards updates status tags."
+    help.createEl("p", {
+      text: "Use #high for priority sorting. The board hides metadata, lets you complete cards with a checkbox, drag between columns, and delete completed tasks."
     });
-    this.containerEl.createEl("p", {
-      text: "Type @date or @schedule to pick a date/time, see public calendar busy slots, and insert @schedule(...)."
+    help.createEl("p", {
+      text: "Type @date to pick a date, optional time, and recurrence. Public .ics calendars show busy slots, and the desktop local feed exports dated tasks to Apple Calendar."
     });
+
+    this.containerEl.createEl("h3", { text: "Roadmap" });
+    const roadmap = this.containerEl.createEl("ul", { cls: "task-kanban-settings__roadmap" });
+    roadmap.createEl("li", { text: "Smarter free-slot suggestions from calendar availability." });
+    roadmap.createEl("li", { text: "Optional CalDAV push to create/update real Apple Calendar events." });
+    roadmap.createEl("li", { text: "Recurring task rollover and richer mobile board gestures." });
 
     new Setting(this.containerEl)
       .setName("Board theme")
@@ -350,7 +357,7 @@ class TaskKanbanSettingTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName("Public calendar .ics URLs")
-      .setDesc("One URL per line. These are read-only and used to show busy slots in the schedule picker.")
+      .setDesc("One URL per line. These are read-only and used to show busy slots in the @date picker.")
       .addTextArea((text) => {
         text
           .setPlaceholder("https://pXX-caldav.icloud.com/published/2/...")
@@ -365,7 +372,7 @@ class TaskKanbanSettingTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName("Default event duration")
-      .setDesc("Used when scheduled tasks include a time.")
+      .setDesc("Used when @date tasks include a time.")
       .addText((text) => {
         text
           .setPlaceholder("30")
@@ -580,7 +587,7 @@ class ScheduleSuggest extends EditorSuggest<string> {
 
   onTrigger(cursor: EditorPosition, editor: Editor): EditorSuggestTriggerInfo | null {
     const line = editor.getLine(cursor.line).slice(0, cursor.ch);
-    const match = line.match(/@(date|schedule)$/);
+    const match = line.match(/@date$/);
     if (!match) return null;
 
     return {
@@ -591,7 +598,7 @@ class ScheduleSuggest extends EditorSuggest<string> {
   }
 
   getSuggestions(): string[] {
-    return ["Insert schedule"];
+    return ["Insert date"];
   }
 
   renderSuggestion(value: string, el: HTMLElement) {
@@ -624,7 +631,7 @@ class ScheduleModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Schedule" });
+    contentEl.createEl("h2", { text: "Date" });
 
     const form = contentEl.createEl("form", { cls: "task-kanban-reminder" });
     const dateLabel = form.createEl("label", { text: "Date" });
@@ -659,7 +666,7 @@ class ScheduleModal extends Modal {
       event.preventDefault();
       const frequency = frequencySelect.value as Frequency;
       const dateTime = timeInput.value ? `${dateInput.value} ${timeInput.value}` : dateInput.value;
-      this.onSubmit(`@schedule(${dateTime}, ${frequency})`);
+      this.onSubmit(`@date(${dateTime}, ${frequency})`);
       this.close();
     });
   }
@@ -797,7 +804,11 @@ function setTaskChecked(line: string, checked: boolean): string {
 }
 
 function getCardDisplayText(text: string): string {
-  return text.replace(/(^|\s)#(?:now|maybe|later|high)\b/g, " ").replace(/\s+/g, " ").trim();
+  return text
+    .replace(/(^|\s)#(?:now|maybe|later|high)\b/g, " ")
+    .replace(/@(date|schedule)\([^)]+\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeLiveTaskLine(line: string): string | null {
@@ -827,7 +838,7 @@ function parseScheduledTasks(file: TFile, content: string, defaultDurationMinute
     const schedule = text ? parseSchedule(text, defaultDurationMinutes) : null;
     if (!text || !schedule) continue;
 
-    const title = getCardDisplayText(text.replace(/@schedule\([^)]+\)/g, "")).trim();
+    const title = getCardDisplayText(text).trim();
     tasks.push({
       uid: `${hashString(`${file.path}:${index}:${text}`)}@task-list-kanban-cal`,
       title: title || file.basename,
@@ -844,10 +855,10 @@ function parseScheduledTasks(file: TFile, content: string, defaultDurationMinute
 }
 
 function parseSchedule(text: string, defaultDurationMinutes: number): { start: Date; end: Date; allDay: boolean; frequency: Frequency } | null {
-  const match = text.match(/@schedule\((\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?\s*,\s*(once|weekly|2week|monthly|quarterly|yearly)\)/);
+  const match = text.match(/@(date|schedule)\((\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?\s*,\s*(once|weekly|2week|monthly|quarterly|yearly)\)/);
   if (!match) return null;
 
-  const [, date, time, frequency] = match;
+  const [, , date, time, frequency] = match;
   if (time) {
     const start = new Date(`${date}T${time}:00`);
     const end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000);
