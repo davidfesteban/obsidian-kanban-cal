@@ -815,7 +815,7 @@ function setTaskChecked(line: string, checked: boolean): string {
 function getCardDisplayText(text: string): string {
   return text
     .replace(/(^|\s)#(?:now|maybe|later|high)\b/g, " ")
-    .replace(/@(date|schedule)\([^)]+\)/g, " ")
+    .replace(/@date\([^)]+\)/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -864,10 +864,10 @@ function parseScheduledTasks(file: TFile, content: string, defaultDurationMinute
 }
 
 function parseSchedule(text: string, defaultDurationMinutes: number): { start: Date; end: Date; allDay: boolean; frequency: Frequency } | null {
-  const match = text.match(/@(date|schedule)\((\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?\s*,\s*(once|weekly|2week|monthly|quarterly|yearly)\)/);
+  const match = text.match(/@date\((\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?\s*,\s*(once|weekly|2week|monthly|quarterly|yearly)\)/);
   if (!match) return null;
 
-  const [, , date, time, frequency] = match;
+  const [, date, time, frequency] = match;
   if (time) {
     const start = new Date(`${date}T${time}:00`);
     const end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000);

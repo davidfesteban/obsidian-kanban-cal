@@ -40,8 +40,6 @@ Frequencies:
 once, weekly, 2week, monthly, quarterly, yearly
 ```
 
-Existing `@schedule(...)` tokens are still read for compatibility, but new inserts use `@date(...)`.
-
 ## Reminder Lists
 
 Use `type: reminder-list` when you want calendar reminders without task checkboxes:
