@@ -1,0 +1,10 @@
+{
+  "id": "task-list-kanban-cal",
+  "name": "Task List Kanban Calendar",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Turns task-list notes into a tag-driven kanban board with reminder insertion.",
+  "author": "David Festeban",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

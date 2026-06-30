@@ -1,0 +1,120 @@
+.task-kanban {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  padding: 12px;
+}
+
+.task-kanban__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.task-kanban__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-kanban__columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.task-kanban__column {
+  min-width: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.task-kanban__column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.task-kanban__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: auto;
+  min-height: 120px;
+  flex: 1;
+}
+
+.task-kanban__card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  cursor: grab;
+  user-select: none;
+  word-break: break-word;
+}
+
+.task-kanban__card-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.task-kanban__status-select {
+  max-width: 104px;
+  flex: 0 0 auto;
+}
+
+.task-kanban__card:active {
+  cursor: grabbing;
+}
+
+.task-kanban__card--high {
+  border-left: 4px solid var(--color-red);
+}
+
+.task-kanban__empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.task-kanban-reminder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-kanban-reminder label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-kanban-reminder__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .task-kanban__columns {
+    grid-template-columns: 1fr;
+  }
+}
