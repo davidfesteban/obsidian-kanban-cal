@@ -158,6 +158,47 @@
   gap: 8px;
 }
 
+.task-kanban-settings__calendar-urls {
+  width: 100%;
+  min-height: 96px;
+  font-family: var(--font-monospace);
+}
+
+.task-kanban-schedule__busy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+
+.task-kanban-schedule__busy-title {
+  font-weight: 700;
+}
+
+.task-kanban-schedule__busy-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.task-kanban-schedule__busy-slot {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.task-kanban-schedule__busy-slot span:first-child {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
 .task-kanban--90s {
   --tk-bg: #b8c0d0;
   --tk-column-bg: #d5dae5;

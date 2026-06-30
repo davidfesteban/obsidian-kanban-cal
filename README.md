@@ -28,6 +28,18 @@ becomes:
 - [ ] Element
 ```
 
-Use `@date` or `@schedule` in the editor to open the date/frequency picker. The picker replaces the trigger with `@schedule(YYYY-MM-DD, frequency)`.
+Use `@date` or `@schedule` in the editor to open the date/time/frequency picker. The picker replaces the trigger with `@schedule(YYYY-MM-DD, frequency)` or `@schedule(YYYY-MM-DD HH:mm, frequency)`.
 
 The kanban board hides status/priority tags on cards, lets you complete tasks with a checkbox, and includes Default, 90s grey blue, modern pixel, and minimalist themes in plugin settings.
+
+## Calendar
+
+Plugin settings accepts public `.ics` calendar URLs, one per line. The schedule picker uses them read-only to show busy slots for the selected date.
+
+On desktop, enable the local `.ics` feed and subscribe Apple Calendar to:
+
+```text
+http://127.0.0.1:8765/tasks.ics
+```
+
+The feed exports unchecked tasks with `@schedule(...)`; checked tasks are omitted.
